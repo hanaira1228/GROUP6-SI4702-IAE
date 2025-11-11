@@ -1,16 +1,24 @@
 const express = require('express');
-const cors = require('cors');
 const mongoose = require('mongoose');
-require('dotenv').config();
+const cors = require('cors');
+const restaurantRoutes = require('./routes/restaurantRoutes');
+const dotenv = require('dotenv');
+
+dotenv.config();
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
-app.get('/', (req, res) => {
-  res.send('Restaurant Service API running 🚀');
-});
+// MongoDB Connection
+const MONGO_URI = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/restaurantDB';
+mongoose.connect(MONGO_URI)
+  .then(() => console.log('✅ MongoDB Connected'))
+  .catch(err => console.error('❌ MongoDB Error:', err));
 
-app.listen(3000, () => {
-  console.log('Server running on port 3000');
-});
+// Routes
+app.use('/api/restaurants', restaurantRoutes);
+
+// Start server
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`✅ Server running on port ${3000}`));

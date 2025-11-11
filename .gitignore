@@ -1,0 +1,7 @@
+node_modules
+.env
+
+user-service/node_modules
+restaurant-service/node_modules
+order-service/node_modules
+api-gateway/node_modules

@@ -11,7 +11,7 @@ app.use(cors());
 app.use(express.json());
 
 const PORT = process.env.PORT || 3003;
-const GATEWAY = process.env.API_GATEWAY || "http://localhost:5000";
+const GATEWAY = process.env.API_GATEWAY || "http://localhost:3003";
 
 mongoose.set('strictQuery', false);
 mongoose.connect(process.env.MONGO_URI)

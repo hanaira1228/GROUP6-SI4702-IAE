@@ -1,8 +1,8 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
-const restaurantRoutes = require('./routes/restaurantRoutes');
 const dotenv = require('dotenv');
+const restaurantRoutes = require('./routes/restaurantRoutes'); // ./ = folder sama level server.js
 
 dotenv.config();
 

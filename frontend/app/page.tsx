@@ -4,29 +4,44 @@ import Image from "next/image";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
+import Link from "next/link";
 
-interface Restaurant {
+interface Menu {
   _id: string;
   name: string;
+  price: number;
+  restaurant: {
+    _id: string;
+    name: string;
+  };
   image?: string;
-  description?: string;
+}
+
+interface MenusApiResponse {
+  menus: Menu[];
+  totalPages?: number;
 }
 
 export default function HomePage() {
-  const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
+  const [menus, setMenus] = useState<Menu[]>([]);
   const [loading, setLoading] = useState(true);
 
   // form state
   const [name, setName] = useState("");
-  const [menu, setMenu] = useState("");
+  const [selectedMenu, setSelectedMenu] = useState("");
   const [quantity, setQuantity] = useState(1);
   const [message, setMessage] = useState("");
 
   useEffect(() => {
-    fetch("http://localhost:3000/api/restaurants")
+    fetch("http://localhost:3000/api/restaurants/menus?limit=20&page=1")
       .then((res) => res.json())
-      .then((data) => {
-        setRestaurants(data);
+      .then((data: MenusApiResponse) => {
+        // pastikan restaurant selalu ada
+        const safeMenus: Menu[] = data.menus.map((menu) => ({
+          ...menu,
+          restaurant: menu.restaurant || { _id: "", name: "Unknown" },
+        }));
+        setMenus(safeMenus);
         setLoading(false);
       })
       .catch(() => setLoading(false));
@@ -42,7 +57,7 @@ export default function HomePage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           customerName: name,
-          restaurantName: menu,
+          menuName: selectedMenu,
           quantity,
         }),
       });
@@ -50,28 +65,19 @@ export default function HomePage() {
       if (res.ok) {
         setMessage("Order created successfully!");
         setName("");
-        setMenu("");
+        setSelectedMenu("");
         setQuantity(1);
       } else {
-        const err = await res.json();
-        setMessage(`Failed: ${err.message || "unknown error"}`);
+        const errorResponse = await res.json();
+        setMessage(`Failed: ${errorResponse.message || "unknown error"}`);
       }
-    } catch (err) {
+    } catch {
       setMessage("Error sending order");
     }
   };
 
   return (
     <div className="min-h-screen bg-pink-100 text-pink-900 font-sans">
-      {/* Navbar */}
-      <nav className="fixed flex justify-center gap-10 py-6 font-medium text-pink-700 bg-pink-100 w-full z-50 shadow-sm">
-        <a href="#about" className="hover:text-pink-500 font-bold">ABOUT US</a>
-        <a href="#order" className="hover:text-pink-500 font-bold">ORDER ONLINE</a>
-        <a href="#menu" className="hover:text-pink-500 font-bold">MENU</a>
-        <a href="#locations" className="hover:text-pink-500 font-bold">LOCATIONS</a>
-        <a href="#contact" className="hover:text-pink-500 font-bold">CONTACT US</a>
-      </nav>
-
       {/* Hero */}
       <section className="flex flex-col items-center text-center pt-32 px-4">
         <h1 className="text-5xl font-bold text-pink-700 leading-tight">
@@ -103,29 +109,40 @@ export default function HomePage() {
       {/* Menu Section */}
       <section id="menu" className="mt-24 bg-pink-200 py-16">
         <div className="text-center mb-10">
-          <h2 className="text-3xl font-semibold text-pink-700">Our Cafe</h2>
+          <h2 className="text-3xl font-semibold text-pink-700">Our Dips</h2>
         </div>
 
         {loading ? (
           <p className="text-center text-gray-600">Loading menu...</p>
         ) : (
-          <div className="flex flex-wrap justify-center gap-8">
-            {restaurants.map((item, i) => (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto place-items-center">
+            {menus.map((menu) => (
               <motion.div
-                key={i}
+                key={menu._id}
                 whileHover={{ scale: 1.05 }}
-                className="bg-white rounded-2xl p-6 shadow-lg text-center w-64"
+                className="bg-white rounded-2xl p-6 shadow-lg text-center"
               >
                 <Image
-                  src={item.image || "/images/donat-tumpuk.png"}
-                  alt={item.name}
+                  src={menu.image || "/images/donat-tumpuk.png"}
+                  alt={menu.name}
                   width={150}
                   height={150}
                   className="mx-auto"
                 />
-                <h3 className="mt-4 font-semibold text-lg">{item.name}</h3>
-                <p className="text-sm text-gray-500">
-                  {item.description || "Freshly dipped and delicious!"}
+                <h3 className="mt-4 font-semibold text-lg">{menu.name}</h3>
+                <p className="text-gray-500">Rp {menu.price.toLocaleString()}</p>
+                <p className="text-gray-500 text-sm mt-1">
+                  Restaurant:{" "}
+                  {menu.restaurant._id ? (
+                    <Link
+                      href={`/restaurants/${menu.restaurant._id}`}
+                      className="text-pink-600 hover:underline"
+                    >
+                      {menu.restaurant.name}
+                    </Link>
+                  ) : (
+                    <span className="text-gray-400">{menu.restaurant.name}</span>
+                  )}
                 </p>
                 <Button className="mt-4 bg-pink-500 hover:bg-pink-600 text-white rounded-full px-5">
                   ORDER
@@ -136,36 +153,8 @@ export default function HomePage() {
         )}
       </section>
 
-      {/* Build Your Own */}
-      <section id="order" className="py-20 flex flex-col md:flex-row items-center justify-center gap-12 px-6">
-        <div className="max-w-sm mr-40">
-          <Image
-            src="/images/donat-tumpuk.png"
-            alt="Custom Donuts"
-            width={350}
-            height={350}
-          />
-        </div>
-
-        <div className="text-center md:text-left">
-          <h2 className="text-3xl font-semibold text-pink-700 mb-6">
-            Build Your Own.
-          </h2>
-          <div className="flex flex-col gap-3">
-            {[1, 2, 3, 4].map((n) => (
-              <select
-                key={n}
-                className="p-3 rounded-full bg-pink-200 text-pink-800 font-medium focus:outline-none"
-              >
-                <option>Choose your dip {n}</option>
-              </select>
-            ))}
-          </div>
-        </div>
-      </section>
-
       {/* Order Form */}
-      <section className="bg-pink-200 py-16 px-6 text-center">
+      <section id="order" className="bg-pink-200 py-16 px-6 text-center">
         <h2 className="text-3xl font-semibold text-pink-700 mb-6">Place Your Order</h2>
         <form
           onSubmit={handleOrder}
@@ -181,15 +170,15 @@ export default function HomePage() {
           />
 
           <select
-            value={menu}
-            onChange={(e) => setMenu(e.target.value)}
+            value={selectedMenu}
+            onChange={(e) => setSelectedMenu(e.target.value)}
             required
             className="w-full p-3 rounded-full bg-pink-100 border border-pink-300 focus:outline-none"
           >
             <option value="">Select Menu</option>
-            {restaurants.map((r) => (
-              <option key={r._id} value={r.name}>
-                {r.name}
+            {menus.map((m) => (
+              <option key={m._id} value={m.name}>
+                {m.name} - {m.restaurant.name}
               </option>
             ))}
           </select>
@@ -209,9 +198,7 @@ export default function HomePage() {
             Submit Order
           </Button>
 
-          {message && (
-            <p className="text-pink-700 font-medium mt-3">{message}</p>
-          )}
+          {message && <p className="text-pink-700 font-medium mt-3">{message}</p>}
         </form>
       </section>
     </div>

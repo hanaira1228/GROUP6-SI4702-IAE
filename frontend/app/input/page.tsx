@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import Image from "next/image";
-import Link from "next/link";
 import { Button } from "@/components/ui/button";
 
 interface Restaurant {
@@ -47,15 +46,19 @@ export default function MenuInputPage() {
   const handleAddMenu = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedRestaurant) return setMessage("Please select a restaurant first.");
+    if (!menuName || menuPrice === "") return setMessage("Menu name and price are required.");
 
     setMessage("Adding menu...");
 
     try {
-      const res = await fetch(`http://localhost:3000/api/restaurants${selectedRestaurant}/menus`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: menuName, price: menuPrice }),
-      });
+      const res = await fetch(
+        `http://localhost:3000/api/restaurants/${selectedRestaurant}/menus`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name: menuName, price: menuPrice }),
+        }
+      );
 
       if (res.ok) {
         setMessage("✅ Menu added successfully!");
@@ -65,7 +68,8 @@ export default function MenuInputPage() {
         const err = await res.json();
         setMessage(`❌ Failed: ${err.message || "Unknown error"}`);
       }
-    } catch {
+    } catch (error) {
+      console.error(error);
       setMessage("❌ Error connecting to server");
     }
   };
@@ -86,8 +90,6 @@ export default function MenuInputPage() {
 
       if (res.ok) {
         const created = await res.json();
-
-        // update list langsung
         setRestaurants([...restaurants, created]);
         setSelectedRestaurant(created._id);
         setNewRestaurantName("");
@@ -106,10 +108,6 @@ export default function MenuInputPage() {
 
   return (
     <div className="min-h-screen bg-pink-100 text-pink-900 font-sans">
-      <nav className="fixed flex justify-center gap-10 py-6 font-medium text-pink-700 bg-pink-100 w-full z-50 shadow-sm">
-        <Link href="/" className="hover:text-pink-500">HOME</Link>
-        <a href="#input" className="hover:text-pink-500">INPUT MENU</a>
-      </nav>
 
       <section className="flex flex-col items-center text-center pt-32 px-4">
         <h1 className="text-4xl font-bold text-pink-700 leading-tight">
@@ -136,7 +134,7 @@ export default function MenuInputPage() {
 
       <section id="input" className="bg-pink-200 py-16 px-6 text-center mt-12">
         <h2 className="text-3xl font-semibold text-pink-700 mb-6">
-          Add Restaurant / Menu
+          Add Restaurant
         </h2>
 
         <div className="max-w-md mx-auto bg-white p-6 rounded-2xl shadow-md space-y-5">
@@ -174,6 +172,12 @@ export default function MenuInputPage() {
             </form>
           )}
         </div>
+        
+        <br />
+
+        <h2 className="text-3xl font-semibold text-pink-700 mb-6">
+          Add Menu
+        </h2>
 
         <form
           onSubmit={handleAddMenu}

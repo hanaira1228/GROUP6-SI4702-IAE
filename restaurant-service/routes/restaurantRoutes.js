@@ -66,6 +66,72 @@ router.post('/:id/menus', async (req, res) => {
   }
 });
 
+// GET all menus from all restaurants with pagination
+// GET /api/restaurants/menus?limit=10&page=1
+router.get("/menus", async (req, res) => {
+  try {
+    const limit = parseInt(req.query.limit) || 10;
+    const page = parseInt(req.query.page) || 1;
+    const skip = (page - 1) * limit;
+
+    const restaurants = await Restaurant.find({}, "name menus");
+
+    const allMenus = restaurants.flatMap((r) =>
+      r.menus.map((menu) => ({
+        _id: menu._id,
+        name: menu.name,
+        price: menu.price,
+        restaurant: { _id: r._id, name: r.name },
+      }))
+    );
+
+    const paginated = allMenus.slice(skip, skip + limit);
+
+    res.json({
+      total: allMenus.length,
+      page,
+      totalPages: Math.ceil(allMenus.length / limit),
+      menus: paginated,
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// GET menus from specific restaurant with pagination
+// GET /api/restaurants/:id/menus?limit=5&page=1
+router.get("/:id/menus", async (req, res) => {
+  try {
+    const limit = parseInt(req.query.limit) || 5;
+    const page = parseInt(req.query.page) || 1;
+    const skip = (page - 1) * limit;
+
+    const restaurant = await Restaurant.findById(req.params.id, "name menus");
+    if (!restaurant) return res.status(404).json({ message: "Restaurant not found" });
+
+    const paginatedMenus = restaurant.menus
+      .slice(skip, skip + limit)
+      .map((menu) => ({
+        _id: menu._id,
+        name: menu.name,
+        price: menu.price,
+        restaurant: { _id: restaurant._id, name: restaurant.name },
+      }));
+
+    res.json({
+      restaurantName: restaurant.name,
+      total: restaurant.menus.length,
+      page,
+      totalPages: Math.ceil(restaurant.menus.length / limit),
+      menus: paginatedMenus,
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: err.message });
+  }
+});
+
 router.post("/:id/reviews", async (req, res) => {
   const { user, rating, comment } = req.body;
   try {

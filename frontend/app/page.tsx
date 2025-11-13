@@ -103,7 +103,7 @@ export default function HomePage() {
       {/* Menu Section */}
       <section id="menu" className="mt-24 bg-pink-200 py-16">
         <div className="text-center mb-10">
-          <h2 className="text-3xl font-semibold text-pink-700">Our Dips</h2>
+          <h2 className="text-3xl font-semibold text-pink-700">Our Cafe</h2>
         </div>
 
         {loading ? (

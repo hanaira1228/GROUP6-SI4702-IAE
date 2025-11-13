@@ -1,5 +1,4 @@
 node_modules
-.env
 
 user-service/node_modules
 restaurant-service/node_modules

@@ -1,10 +1,10 @@
-# 🧾 Food Delivery System - Documentation
+#  Food Delivery System - Documentation
 
 Dokumentasi singkat mengenai struktur service, cara menjalankan sistem, port yang digunakan, dan dependensi antar service dalam proyek **Food Delivery System**.
 
 ---
 
-## 📂 Daftar Service
+##  Daftar Service
 
 | Service Name    | Deskripsi Singkat |
 |-----------------|-------------------|
@@ -16,7 +16,7 @@ Dokumentasi singkat mengenai struktur service, cara menjalankan sistem, port yan
 
 ---
 
-## ⚙️ Cara Menjalankan
+##  Cara Menjalankan
 
 1. **Clone Repository**
    ```bash

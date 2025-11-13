@@ -20,7 +20,7 @@ Sistem delivery makanan berbasis microservices dengan API Gateway, menggunakan N
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │                    Frontend (Next.js)                        │
-│                    Port: 3000 (custom)                       │
+│                    Port: 3004 (custom)                       │
 └──────────────────────┬──────────────────────────────────────┘
                        │
                        ▼
@@ -289,7 +289,7 @@ Akses di browser: `http://localhost:3000`
 | User Service | 3001 | User management | `USER_SERVICE_URL` |
 | Restaurant Service | 3002 | Restaurant data | `RESTAURANT_SERVICE_URL` |
 | Order Service | 3003 | Order management | `ORDER_SERVICE_URL` |
-| Frontend (Next.js) | 3000 (custom) | Web UI | Custom port jika conflict |
+| Frontend (Next.js) | 3004 (custom) | Web UI | Custom port jika conflict |
 
 ### Mengubah Port
 
@@ -303,7 +303,7 @@ ORDER_SERVICE_URL=http://localhost:3003
 
 **Frontend (Next.js):**
 ```bash
-npm run dev -- -p 3001
+npm run dev -- -p 3004
 ```
 
 ---

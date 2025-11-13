@@ -1,0 +1,25 @@
+{
+  "name": "group6-si4702-iae",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently \"npm run dev --prefix user-service\" \"npm run dev --prefix restaurant-service\" \"npm run dev --prefix order-service\" \"npm run dev --prefix api-gateway\""
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hanaira1228/GROUP6-SI4702-IAE.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/hanaira1228/GROUP6-SI4702-IAE/issues"
+  },
+  "homepage": "https://github.com/hanaira1228/GROUP6-SI4702-IAE#readme",
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  }
+}

@@ -31,7 +31,14 @@ export const getUsers = async (req, res) => {
 };
 
 export const getUser = async (req, res) => {
-  const user = await User.findOne({ userId: Number(req.params.id) });
+  const { id } = req.params;
+
+  // validasi id
+  if (!id || isNaN(Number(id))) {
+    return res.status(400).json({ message: "Invalid user ID" });
+  }
+
+  const user = await User.findOne({ userId: Number(id) });
   if (!user) return res.status(404).json({ message: "User not found" });
   res.json(user);
 };

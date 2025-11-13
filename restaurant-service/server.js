@@ -17,8 +17,8 @@ mongoose.connect(MONGO_URI)
   .catch(err => console.error('❌ MongoDB Error:', err));
 
 // Routes
-app.use('/api/restaurants', restaurantRoutes);
+app.use('/', restaurantRoutes);
 
 // Start server
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`✅ Server running on port ${3000}`));
+const PORT = process.env.PORT || 3002;
+app.listen(PORT, () => console.log(`✅ Server running on port ${3002}`));

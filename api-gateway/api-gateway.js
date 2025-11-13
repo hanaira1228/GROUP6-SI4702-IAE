@@ -1,11 +1,13 @@
+require('dotenv').config();
+
 const express = require('express');
 const { createProxyMiddleware } = require('http-proxy-middleware');
 
 function createApiGateway(options = {}) {
     const app = express();
 
-    app.use(express.json());
-    app.use(express.urlencoded({ extended: true }));
+    // jangan pakai express.json() atau urlencoded() di gateway
+    // biar request body gak "habis dibaca" sebelum diteruskan ke service lain
 
     const userService = options.userServiceUrl || process.env.USER_SERVICE_URL || 'http://localhost:3001';
     const restaurantService = options.restaurantServiceUrl || process.env.RESTAURANT_SERVICE_URL || 'http://localhost:3002';
@@ -19,6 +21,7 @@ function createApiGateway(options = {}) {
         });
     });
 
+    // 🔹 user-service
     app.use('/api/users', createProxyMiddleware({
         target: userService,
         changeOrigin: true,
@@ -28,6 +31,7 @@ function createApiGateway(options = {}) {
         }
     }));
 
+    // 🔹 restaurant-service
     app.use('/api/restaurants', createProxyMiddleware({
         target: restaurantService,
         changeOrigin: true,
@@ -37,6 +41,7 @@ function createApiGateway(options = {}) {
         }
     }));
 
+    // 🔹 order-service
     app.use('/api/orders', createProxyMiddleware({
         target: orderService,
         changeOrigin: true,
@@ -46,6 +51,7 @@ function createApiGateway(options = {}) {
         }
     }));
 
+    // 404 handler
     app.use((req, res) => {
         res.status(404).json({ error: 'Not found on API Gateway' });
     });
@@ -59,6 +65,6 @@ if (require.main === module) {
     const port = process.env.API_GATEWAY_PORT || 3000;
     const app = createApiGateway();
     app.listen(port, () => {
-        console.log(`API Gateway listening on port ${port}`);
+        console.log(`🌐 API Gateway listening on port ${port}`);
     });
 }

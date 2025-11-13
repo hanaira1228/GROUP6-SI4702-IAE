@@ -1,16 +1,23 @@
-const mongoose = require('mongoose');
+const mongoose = require("mongoose");
 
-const MenuSchema = new mongoose.Schema({
-  name: { type: String, required: true },
-  price: { type: Number, required: true }
+const ReviewSchema = new mongoose.Schema({
+  user: String,
+  rating: { type: Number, required: true },
+  comment: String
 });
 
 const RestaurantSchema = new mongoose.Schema({
   name: { type: String, required: true },
   address: String,
-  rating: { type: Number, default: 0 },
-  menus: { type: [MenuSchema], default: [] }
+  reviews: { type: [ReviewSchema], default: [] },
+  menus: { type: [{ name: String, price: Number }], default: [] } // tambahin ini biar bisa add menu
 }, { timestamps: true });
 
-// Export model
-module.exports = mongoose.model('Restaurant', RestaurantSchema);
+RestaurantSchema.virtual("rating").get(function () {
+  const reviews = this.reviews || [];
+  if (reviews.length === 0) return 0;
+  const sum = reviews.reduce((acc, r) => acc + r.rating, 0);
+  return sum / reviews.length;
+});
+
+module.exports = mongoose.model("Restaurant", RestaurantSchema);

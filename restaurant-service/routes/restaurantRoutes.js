@@ -50,4 +50,34 @@ router.delete('/:id', async (req, res) => {
   }
 });
 
+// POST add menu to a restaurant
+router.post('/:id/menus', async (req, res) => {
+  const { name, price } = req.body;
+  try {
+    const restaurant = await Restaurant.findById(req.params.id);
+    if (!restaurant) return res.status(404).json({ message: 'Restaurant not found' });
+
+    restaurant.menus.push({ name, price });
+    await restaurant.save();
+
+    res.status(201).json({ message: 'Menu added', menu: { name, price } });
+  } catch (err) {
+    res.status(400).json({ message: err.message });
+  }
+});
+
+router.post("/:id/reviews", async (req, res) => {
+  const { user, rating, comment } = req.body;
+  try {
+    const restaurant = await Restaurant.findById(req.params.id);
+    if (!restaurant) return res.status(404).json({ message: "Restaurant not found" });
+
+    restaurant.reviews.push({ user, rating, comment });
+    await restaurant.save();
+    res.status(201).json({ message: "Review added", rating: restaurant.reviews.length ? restaurant.reviews.reduce((a,b)=>a+b.rating,0)/restaurant.reviews.length : 0 });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
 module.exports = router;

@@ -85,12 +85,6 @@ export default function UserPage() {
 
   return (
     <div className="min-h-screen bg-pink-100 text-pink-900 font-sans pb-20">
-      {/* Navbar */}
-      <nav className="fixed flex justify-center gap-10 py-6 font-medium text-pink-700 bg-pink-100 w-full z-50 shadow-sm">
-        <a href="/" className="hover:text-pink-500">HOME</a>
-        <a href="#list" className="hover:text-pink-500">USER LIST</a>
-        <a href="#register" className="hover:text-pink-500">REGISTER</a>
-      </nav>
 
       {/* Header */}
       <section className="pt-32 text-center">

@@ -9,6 +9,7 @@ export default function Navbar() {
       <Link href="/menu" className="hover:text-pink-500 font-bold">MENU</Link>
       <Link href="/restaurant" className="hover:text-pink-500 font-bold">RESTAURANT</Link>
       <Link href="/input" className="hover:text-pink-500 font-bold">INPUT</Link>
+      <Link href="/user" className="hover:text-pink-500 font-bold">USER</Link>
     </nav>
   );
 }

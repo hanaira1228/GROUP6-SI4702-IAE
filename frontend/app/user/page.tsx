@@ -36,7 +36,10 @@ export default function UserPage() {
   };
 
   useEffect(() => {
-    fetchUsers();
+    const load = async () => {
+      await fetchUsers();
+    };
+    load();
   }, []);
 
   // tambah user baru
@@ -59,7 +62,7 @@ export default function UserPage() {
         const err = await res.json();
         setMessage(`❌ Failed: ${err.message}`);
       }
-    } catch (err) {
+    } catch {
       setMessage("⚠️ Error connecting to server");
     }
   };

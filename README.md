@@ -110,8 +110,11 @@ ORDER_SERVICE_URL=http://localhost:3003
 - `GET /restaurants` - Ambil semua restaurant
 - `POST /restaurants` - Buat restaurant baru
 - `GET /restaurants/:id` - Ambil restaurant berdasarkan ID
-- `PUT /restaurants/:id` - Update restaurant
-- `DELETE /restaurants/:id` - Hapus restaurant
+- `PUT /restaurants/:id` - Update restaurant berdasarkan ID
+- `DELETE /restaurants/:id` - Hapus restaurant berdasarkan ID
+- `GET /restaurants/menus` - Ambil semua menu dari semua restaurant
+- `POST /restaurants/:restaurantId/menus` - Buat menu baru berdasarkan ID restaurant 
+- `GET /restaurants/:restaurantId/menus` - Ambil semua menu berdasarkan ID restaurant
 
 ---
 

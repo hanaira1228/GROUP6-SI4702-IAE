@@ -1,17 +1,19 @@
 import User from "../models/User.js";
 import bcrypt from "bcryptjs";
 
-// helper buat next userId
-let nextUserId = 1;
-
+// Create User
 export const createUser = async (req, res) => {
   try {
     const { name, email, password } = req.body;
 
+    // cek userId terakhir
+    const lastUser = await User.findOne().sort({ userId: -1 });
+    const userId = lastUser ? lastUser.userId + 1 : 1;
+
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    const user = new User({ 
-      userId: nextUserId++,
+    const user = new User({
+      userId,
       name,
       email,
       password: hashedPassword,
@@ -20,34 +22,40 @@ export const createUser = async (req, res) => {
 
     const savedUser = await user.save();
     res.status(201).json(savedUser);
+
   } catch (err) {
     res.status(400).json({ message: err.message });
   }
 };
 
+// Get all users
 export const getUsers = async (req, res) => {
   const users = await User.find();
   res.json(users);
 };
 
+// Get single user by userId
 export const getUser = async (req, res) => {
-  const { id } = req.params;
+  const id = Number(req.params.id);
 
-  // validasi id
-  if (!id || isNaN(Number(id))) {
+  if (isNaN(id)) {
     return res.status(400).json({ message: "Invalid user ID" });
   }
 
-  const user = await User.findOne({ userId: Number(id) });
+  const user = await User.findOne({ userId: id });
   if (!user) return res.status(404).json({ message: "User not found" });
   res.json(user);
 };
 
+// Update user
 export const updateUser = async (req, res) => {
-  const user = await User.findOne({ userId: Number(req.params.id) });
+  const id = Number(req.params.id);
+  const user = await User.findOne({ userId: id });
+
   if (!user) return res.status(404).json({ message: "User not found" });
 
   const { name, email, password } = req.body;
+
   if (name) user.name = name;
   if (email) user.email = email;
   if (password) user.password = await bcrypt.hash(password, 10);
@@ -56,8 +64,12 @@ export const updateUser = async (req, res) => {
   res.json(user);
 };
 
+// Delete user
 export const deleteUser = async (req, res) => {
-  const user = await User.findOneAndDelete({ userId: Number(req.params.id) });
+  const id = Number(req.params.id);
+  const user = await User.findOneAndDelete({ userId: id });
+
   if (!user) return res.status(404).json({ message: "User not found" });
+
   res.json({ message: "User deleted successfully" });
 };

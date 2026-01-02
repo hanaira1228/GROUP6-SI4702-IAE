@@ -1,133 +1,69 @@
-require('dotenv').config();
+import "dotenv/config";
 
-const express = require('express');
-const { createProxyMiddleware } = require('http-proxy-middleware');
-const swaggerUi = require('swagger-ui-express');
-const swaggerJsdoc = require('swagger-jsdoc');
+import express from "express";
+import cors from "cors";
+import morgan from "morgan";
+import { ApolloServer } from "apollo-server-express";
+import axios from "axios";
 
-function createApiGateway(options = {}) {
-    const app = express();
+// ====== GRAPHQL SCHEMA & RESOLVER ======
+import typeDefs from "./graphql/schema.js";       // gabungan schema
+import resolvers from "./graphql/resolvers.js";   // gabungan resolver
 
-    const userService = options.userServiceUrl || process.env.USER_SERVICE_URL || 'http://localhost:3001';
-    const restaurantService = options.restaurantServiceUrl || process.env.RESTAURANT_SERVICE_URL || 'http://localhost:3002';
-    const orderService = options.orderServiceUrl || process.env.ORDER_SERVICE_URL || 'http://localhost:3003';
+const app = express();
+app.use(cors());
+app.use(express.json());
+app.use(morgan("dev"));
 
-    // 🔹 Swagger setup
-    const swaggerOptions = {
-        definition: {
-            openapi: '3.0.0',
-            info: {
-                title: 'Food Delivery API Gateway',
-                version: '1.0.0',
-                description: 'Dokumentasi API Gateway untuk sistem Food Delivery',
-            },
-            servers: [
-                { url: `http://localhost:${process.env.API_GATEWAY_PORT || 3000}` },
-            ],
-        },
-        apis: ['./api-gateway.js'], // ambil dokumentasi dari file ini
-    };
+// ====== SERVICE URL ======
+const USER_SERVICE =
+  process.env.USER_SERVICE_URL || "http://localhost:3001";
 
-    const swaggerSpec = swaggerJsdoc(swaggerOptions);
-    app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+const RESTAURANT_SERVICE =
+  process.env.RESTAURANT_SERVICE_URL || "http://localhost:3002";
 
-    /**
-     * @swagger
-     * /:
-     *   get:
-     *     summary: Cek status API Gateway
-     *     description: Menampilkan informasi rute dan target service dari API Gateway.
-     *     responses:
-     *       200:
-     *         description: Informasi gateway.
-     *         content:
-     *           application/json:
-     *             example:
-     *               service: "api-gateway"
-     *               routes: ["/api/users", "/api/restaurants", "/api/orders"]
-     *               docs: "/api-docs"
-     */
-    app.get('/', (req, res) => {
-        res.json({
-            service: 'api-gateway',
-            routes: ['/api/users', '/api/restaurants', '/api/orders'],
-            docs: '/api-docs',
-            targets: { userService, restaurantService, orderService }
-        });
-    });
+const ORDER_SERVICE =
+  process.env.ORDER_SERVICE_URL || "http://localhost:3003";
 
-    /**
-     * @swagger
-     * /api/users:
-     *   get:
-     *     summary: Proxy ke User Service
-     *     description: Mengarahkan permintaan ke service user (misalnya http://localhost:3001)
-     *     responses:
-     *       200:
-     *         description: Respons dari user-service.
-     */
-    app.use('/api/users', createProxyMiddleware({
-        target: userService,
-        changeOrigin: true,
-        pathRewrite: { '^/api/users': '' },
-        onProxyReq: (proxyReq, req) => {
-            if (req.ip) proxyReq.setHeader('x-forwarded-for', req.ip);
-        }
-    }));
+// ====== ROOT CHECK ======
+app.get("/", (req, res) => {
+  res.json({
+    service: "api-gateway",
+    status: "running",
+    graphql: "/graphql",
+    services: {
+      user: USER_SERVICE,
+      restaurant: RESTAURANT_SERVICE,
+      order: ORDER_SERVICE,
+    },
+  });
+});
 
-    /**
-     * @swagger
-     * /api/restaurants:
-     *   get:
-     *     summary: Proxy ke Restaurant Service
-     *     description: Mengarahkan permintaan ke service restaurant (misalnya http://localhost:3002)
-     *     responses:
-     *       200:
-     *         description: Respons dari restaurant-service.
-     */
-    app.use('/api/restaurants', createProxyMiddleware({
-        target: restaurantService,
-        changeOrigin: true,
-        pathRewrite: { '^/api/restaurants': '' },
-        onProxyReq: (proxyReq, req) => {
-            if (req.ip) proxyReq.setHeader('x-forwarded-for', req.ip);
-        }
-    }));
+// ====== START SERVER ======
+async function startServer() {
+  const apolloServer = new ApolloServer({
+    typeDefs,
+    resolvers,
+    context: () => ({
+      services: {
+        user: USER_SERVICE,
+        restaurant: RESTAURANT_SERVICE,
+        order: ORDER_SERVICE,
+      },
+      axios,
+    }),
+  });
 
-    /**
-     * @swagger
-     * /api/orders:
-     *   get:
-     *     summary: Proxy ke Order Service
-     *     description: Mengarahkan permintaan ke service order (misalnya http://localhost:3003)
-     *     responses:
-     *       200:
-     *         description: Respons dari order-service.
-     */
-    app.use('/api/orders', createProxyMiddleware({
-        target: orderService,
-        changeOrigin: true,
-        pathRewrite: { '^/api/orders': '' },
-        onProxyReq: (proxyReq, req) => {
-            if (req.ip) proxyReq.setHeader('x-forwarded-for', req.ip);
-        }
-    }));
+  await apolloServer.start();
+  apolloServer.applyMiddleware({ app, path: "/graphql" });
 
-    app.use((req, res) => {
-        res.status(404).json({ error: 'Not found on API Gateway' });
-    });
-
-    return app;
+  const PORT = process.env.API_GATEWAY_PORT || 3000;
+  app.listen(PORT, () => {
+    console.log("🌐 API Gateway running");
+    console.log(`🚀 GraphQL → http://localhost:${PORT}/graphql`);
+  });
 }
 
-module.exports = { createApiGateway };
-
-if (require.main === module) {
-    const port = process.env.API_GATEWAY_PORT || 3000;
-    const app = createApiGateway();
-    
-    app.listen(port, () => {
-        console.log(`🌐 API Gateway listening on port ${port}`);
-        console.log(`📘 Swagger Docs available at http://localhost:${port}/api-docs`);
-    });
-}
+startServer().catch((err) => {
+  console.error("❌ Gateway failed to start:", err);
+});

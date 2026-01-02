@@ -1,23 +1,63 @@
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
 
-const ReviewSchema = new mongoose.Schema({
+// =======================
+// REVIEW SCHEMA
+// =======================
+const reviewSchema = new mongoose.Schema({
   user: String,
-  rating: { type: Number, required: true },
-  comment: String
+  rating: {
+    type: Number,
+    required: true,
+  },
+  comment: String,
 });
 
-const RestaurantSchema = new mongoose.Schema({
-  name: { type: String, required: true },
-  address: String,
-  reviews: { type: [ReviewSchema], default: [] },
-  menus: { type: [{ name: String, price: Number }], default: [] } // tambahin ini biar bisa add menu
-}, { timestamps: true });
+// =======================
+// RESTAURANT SCHEMA
+// =======================
+const restaurantSchema = new mongoose.Schema(
+  {
+    name: {
+      type: String,
+      required: true,
+    },
+    address: String,
 
-RestaurantSchema.virtual("rating").get(function () {
+    reviews: {
+      type: [reviewSchema],
+      default: [],
+    },
+
+    menus: {
+      type: [
+        {
+          name: String,
+          price: Number,
+        },
+      ],
+      default: [],
+    },
+  },
+  {
+    timestamps: true,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true },
+  }
+);
+
+// =======================
+// VIRTUAL FIELD: rating
+// =======================
+restaurantSchema.virtual("rating").get(function () {
   const reviews = this.reviews || [];
   if (reviews.length === 0) return 0;
-  const sum = reviews.reduce((acc, r) => acc + r.rating, 0);
-  return sum / reviews.length;
+
+  const total = reviews.reduce((sum, r) => sum + r.rating, 0);
+  return total / reviews.length;
 });
 
-module.exports = mongoose.model("Restaurant", RestaurantSchema);
+// =======================
+// MODEL EXPORT
+// =======================
+const Restaurant = mongoose.model("Restaurant", restaurantSchema);
+export default Restaurant;

@@ -29,11 +29,6 @@ export default function RestaurantPage() {
 
   return (
     <div className="min-h-screen bg-pink-100 text-pink-900 font-sans">
-      {/* Navbar */}
-      <nav className="fixed flex justify-center gap-10 py-6 font-medium text-pink-700 bg-pink-100 w-full z-50 shadow-sm">
-        <a href="/" className="hover:text-pink-500">HOME</a>
-        <a href="#restaurant" className="hover:text-pink-500">RESTAURANTS</a>
-      </nav>
 
       {/* Header */}
       <section className="flex flex-col items-center text-center pt-32 px-4">

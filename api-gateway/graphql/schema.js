@@ -22,8 +22,16 @@ const typeDefs = gql`
   }
 
   type Menu {
+    _id: ID
     name: String
     price: Int
+    createdAt: String
+    restaurant: MenuRestaurant
+  }``
+
+  type MenuRestaurant {
+    _id: ID
+    name: String
   }
 
   type Restaurant {
@@ -50,6 +58,11 @@ const typeDefs = gql`
 
   input RestaurantInput {
     name: String!
+    address: String
+  }
+
+  input UpdateRestaurantInput {
+    name: String
     address: String
   }
 
@@ -105,9 +118,22 @@ const typeDefs = gql`
 
     restaurants: [Restaurant]
     restaurant(id: ID!): Restaurant
+    menus(page: Int, limit: Int): MenusResponse
+    latestMenus(limit: Int): LatestMenusResponse
 
     orders: [Order]
     order(id: ID!): Order
+  }
+
+  type MenusResponse {
+    total: Int
+    page: Int
+    totalPages: Int
+    menus: [Menu]
+  }
+
+  type LatestMenusResponse {
+    menus: [Menu]
   }
 
   # =======================
@@ -121,6 +147,8 @@ const typeDefs = gql`
     ): User
 
     createRestaurant(data: RestaurantInput!): Restaurant
+    updateRestaurant(id: ID!, data: UpdateRestaurantInput!): Restaurant
+    deleteRestaurant(id: ID!): DeleteResponse
     addReview(restaurantId: ID!, review: ReviewInput!): Restaurant
     addMenu(restaurantId: ID!, menu: MenuInput!): Restaurant
 

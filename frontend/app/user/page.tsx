@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
+import Link from "next/link";
 
 interface User {
   uuid: string;
@@ -242,13 +243,22 @@ export default function UserPage() {
                 <p className="text-xs mt-2 text-pink-600">
                   Role: {user.role}
                 </p>
-                <Button
-                  variant="destructive"
-                  className="mt-4 w-full bg-pink-500 hover:bg-pink-600 text-white rounded-full"
-                  onClick={() => handleDelete(user.uuid)}
-                >
-                  Delete
-                </Button>
+                <div className="mt-4 space-y-2">
+                  {user.role === "admin" && (
+                    <Link href="/admin" className="block">
+                      <Button className="w-full bg-pink-600 hover:bg-pink-700 text-white rounded-full">
+                        👑 Admin Panel
+                      </Button>
+                    </Link>
+                  )}
+                  <Button
+                    variant="destructive"
+                    className="w-full bg-pink-500 hover:bg-pink-600 text-white rounded-full"
+                    onClick={() => handleDelete(user.uuid)}
+                  >
+                    Delete
+                  </Button>
+                </div>
               </motion.div>
             ))}
           </div>

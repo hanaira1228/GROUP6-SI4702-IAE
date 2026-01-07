@@ -10,12 +10,53 @@ const ORDER_SERVICE =
 
 // helper biar konsisten & ga bocor axios error
 const handleError = (err, fallback) => {
-  const message =
-    err?.response?.data?.message ||
-    err?.message ||
-    fallback;
+  // Log error untuk debugging
+  console.error("❌ GraphQL Error:", {
+    message: err?.message,
+    response: err?.response?.data,
+    status: err?.response?.status,
+    url: err?.config?.url,
+    code: err?.code,
+  });
+
+  // Extract error message dengan lebih detail
+  let message = fallback;
+  
+  if (err?.response) {
+    // HTTP Error Response
+    message = err.response.data?.message || 
+              err.response.data?.error || 
+              `HTTP ${err.response.status}: ${err.response.statusText}` ||
+              fallback;
+  } else if (err?.code === "ECONNREFUSED") {
+    // Connection refused - service tidak running
+    message = `Cannot connect to service. Make sure the service is running. (${err.message})`;
+  } else if (err?.code === "ETIMEDOUT") {
+    // Timeout
+    message = `Request timeout. Service may be slow or unavailable.`;
+  } else if (err?.message) {
+    // Other errors
+    message = err.message;
+  }
 
   throw new GraphQLError(message);
+};
+
+// helper untuk convert MongoDB _id ke GraphQL id
+const transformRestaurant = (restaurant) => {
+  if (!restaurant) return null;
+  
+  const { _id, ...rest } = restaurant;
+  return {
+    ...rest,
+    id: _id || restaurant.id,
+  };
+};
+
+// helper untuk transform array of restaurants
+const transformRestaurants = (restaurants) => {
+  if (!Array.isArray(restaurants)) return [];
+  return restaurants.map(transformRestaurant);
 };
 
 const resolvers = {
@@ -23,9 +64,12 @@ const resolvers = {
     // ================= USER =================
     users: async () => {
       try {
-        const res = await axios.get(`${USER_SERVICE}/users`);
+        const res = await axios.get(`${USER_SERVICE}/users`, {
+          timeout: 5000,
+        });
         return res.data;
       } catch (err) {
+        console.error("Users query error:", err);
         handleError(err, "Failed to fetch users");
       }
     },
@@ -33,8 +77,8 @@ const resolvers = {
     // ================= RESTAURANT =================
     restaurants: async () => {
       try {
-        const res = await axios.get(`${RESTAURANT_SERVICE}/`);
-        return res.data;
+        const res = await axios.get(`${RESTAURANT_SERVICE}/restaurants`);
+        return transformRestaurants(res.data);
       } catch (err) {
         handleError(err, "Failed to fetch restaurants");
       }
@@ -42,10 +86,32 @@ const resolvers = {
 
     restaurant: async (_, { id }) => {
       try {
-        const res = await axios.get(`${RESTAURANT_SERVICE}/${id}`);
-        return res.data;
+        const res = await axios.get(`${RESTAURANT_SERVICE}/restaurants/${id}`);
+        return transformRestaurant(res.data);
       } catch (err) {
         handleError(err, "Restaurant not found");
+      }
+    },
+
+    menus: async (_, { page = 1, limit = 10 }) => {
+      try {
+        const res = await axios.get(
+          `${RESTAURANT_SERVICE}/restaurants/menus?page=${page}&limit=${limit}`
+        );
+        return res.data;
+      } catch (err) {
+        handleError(err, "Failed to fetch menus");
+      }
+    },
+
+    latestMenus: async (_, { limit = 5 }) => {
+      try {
+        const res = await axios.get(
+          `${RESTAURANT_SERVICE}/restaurants/menus/latest?limit=${limit}`
+        );
+        return res.data;
+      } catch (err) {
+        handleError(err, "Failed to fetch latest menus");
       }
     },
 
@@ -73,9 +139,17 @@ const resolvers = {
     // ================= USER =================
     register: async (_, args) => {
       try {
-        const res = await axios.post(`${USER_SERVICE}/register`, args);
+        // User service uses POST /users for registration, not /register
+        const res = await axios.post(`${USER_SERVICE}/users`, {
+          name: args.name,
+          email: args.email,
+          password: args.password,
+        }, {
+          timeout: 5000,
+        });
         return res.data;
       } catch (err) {
+        console.error("Register mutation error:", err);
         handleError(err, "Failed to register user");
       }
     },
@@ -83,20 +157,45 @@ const resolvers = {
     // ================= RESTAURANT =================
     createRestaurant: async (_, { data }) => {
       try {
-        const res = await axios.post(`${RESTAURANT_SERVICE}/`, data);
-        return res.data;
+        console.log("📝 Creating restaurant:", data);
+        console.log("🔗 Calling:", `${RESTAURANT_SERVICE}/restaurants`);
+        
+        const res = await axios.post(`${RESTAURANT_SERVICE}/restaurants`, data);
+        console.log("✅ Restaurant created:", res.data);
+        
+        return transformRestaurant(res.data);
       } catch (err) {
         handleError(err, "Failed to create restaurant");
       }
     },
 
+    updateRestaurant: async (_, { id, data }) => {
+      try {
+        const res = await axios.put(`${RESTAURANT_SERVICE}/restaurants/${id}`, data);
+        return transformRestaurant(res.data);
+      } catch (err) {
+        handleError(err, "Failed to update restaurant");
+      }
+    },
+
+    deleteRestaurant: async (_, { id }) => {
+      try {
+        const res = await axios.delete(`${RESTAURANT_SERVICE}/restaurants/${id}`);
+        return { message: res.data.message || "Restaurant deleted successfully" };
+      } catch (err) {
+        handleError(err, "Failed to delete restaurant");
+      }
+    },
+
     addMenu: async (_, { restaurantId, menu }) => {
       try {
-        const res = await axios.post(
-          `${RESTAURANT_SERVICE}/${restaurantId}/menus`,
+        await axios.post(
+          `${RESTAURANT_SERVICE}/restaurants/${restaurantId}/menus`,
           menu
         );
-        return res.data;
+        // Fetch updated restaurant to return full data
+        const res = await axios.get(`${RESTAURANT_SERVICE}/restaurants/${restaurantId}`);
+        return transformRestaurant(res.data);
       } catch (err) {
         handleError(err, "Failed to add menu");
       }
@@ -104,11 +203,13 @@ const resolvers = {
 
     addReview: async (_, { restaurantId, review }) => {
       try {
-        const res = await axios.post(
-          `${RESTAURANT_SERVICE}/${restaurantId}/reviews`,
+        await axios.post(
+          `${RESTAURANT_SERVICE}/restaurants/${restaurantId}/reviews`,
           review
         );
-        return res.data;
+        // Fetch updated restaurant to return full data
+        const res = await axios.get(`${RESTAURANT_SERVICE}/restaurants/${restaurantId}`);
+        return transformRestaurant(res.data);
       } catch (err) {
         handleError(err, "Failed to add review");
       }

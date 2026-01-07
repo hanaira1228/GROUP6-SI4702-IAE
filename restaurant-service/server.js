@@ -13,8 +13,8 @@ app.use(express.json());
 // ===== DATABASE =====
 mongoose
   .connect(process.env.MONGO_URI)
-  .then(() => console.log("✅ MongoDB Connected (Restaurant Service)"))
-  .catch((err) => console.error("❌ MongoDB Error:", err));
+  .then(() => console.log("✅ MongoDB connected (Restaurant Service)"))
+  .catch((err) => console.error("❌ MongoDB error:", err));
 
 // ===== ROUTES =====
 app.use("/restaurants", restaurantRoutes);

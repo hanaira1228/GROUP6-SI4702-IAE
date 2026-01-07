@@ -22,6 +22,34 @@ interface MenusApiResponse {
   totalPages?: number;
 }
 
+// Helper function to get image based on menu name
+const getMenuImage = (menuName: string): string => {
+  const name = menuName.toLowerCase();
+  
+  // Mapping berdasarkan kata kunci
+  if (name.includes("ayam") || name.includes("chicken") || name.includes("daging")) {
+    return "/images/donat-merah.png";
+  }
+  if (name.includes("beef") || name.includes("steak") || name.includes("sapi")) {
+    return "/images/pink-donut.png";
+  }
+  if (name.includes("sushi") || name.includes("salmon") || name.includes("ikan") || name.includes("seafood")) {
+    return "/images/donat-tumpuk.png";
+  }
+  if (name.includes("pasta") || name.includes("spaghetti") || name.includes("noodle")) {
+    return "/images/donat-merah.png";
+  }
+  if (name.includes("pizza") || name.includes("burger") || name.includes("sandwich")) {
+    return "/images/pink-donut.png";
+  }
+  if (name.includes("dessert") || name.includes("cake") || name.includes("donut") || name.includes("sweet")) {
+    return "/images/donat-tumpuk.png";
+  }
+  
+  // Default image
+  return "/images/donat-tumpuk.png";
+};
+
 export default function HomePage() {
   const [menus, setMenus] = useState<Menu[]>([]);
   const [loading, setLoading] = useState(true);
@@ -31,9 +59,11 @@ export default function HomePage() {
   const [selectedMenu, setSelectedMenu] = useState("");
   const [quantity, setQuantity] = useState(1);
   const [message, setMessage] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    fetch("http://localhost:3000/api/restaurants/menus?limit=20&page=1")
+    // Fetch 5 latest menus for "Our Dips" section
+    fetch("http://localhost:3000/api/restaurants/menus/latest?limit=5")
       .then((res) => res.json())
       .then((data: MenusApiResponse) => {
         // pastikan restaurant selalu ada
@@ -47,32 +77,113 @@ export default function HomePage() {
       .catch(() => setLoading(false));
   }, []);
 
+  // Fetch all menus for order dropdown
+  const [allMenus, setAllMenus] = useState<Menu[]>([]);
+
+  useEffect(() => {
+    fetch("http://localhost:3000/api/restaurants/menus?limit=100&page=1")
+      .then((res) => res.json())
+      .then((data: MenusApiResponse) => {
+        const safeMenus: Menu[] = data.menus.map((menu) => ({
+          ...menu,
+          restaurant: menu.restaurant || { _id: "", name: "Unknown" },
+        }));
+        setAllMenus(safeMenus);
+      })
+      .catch(() => {});
+  }, []);
+
   const handleOrder = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (isSubmitting) {
+      return; // Prevent double submission
+    }
+
     setMessage("Sending order...");
+    setIsSubmitting(true);
+
+    if (!name.trim()) {
+      setMessage("❌ Please enter your name");
+      setIsSubmitting(false);
+      return;
+    }
+
+    if (!selectedMenu) {
+      setMessage("❌ Please select a menu");
+      setIsSubmitting(false);
+      return;
+    }
+
+    let menuData;
+    try {
+      menuData = JSON.parse(selectedMenu);
+    } catch (parseError) {
+      console.error("Parse error:", parseError);
+      setMessage("❌ Invalid menu data. Please select a menu again.");
+      setIsSubmitting(false);
+      return;
+    }
 
     try {
-      const res = await fetch("http://localhost:3000/api/orders", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          customerName: name,
-          menuName: selectedMenu,
-          quantity,
-        }),
-      });
+      const totalPrice = menuData.price * quantity;
 
-      if (res.ok) {
-        setMessage("Order created successfully!");
+      const orderData = {
+        customerName: name.trim(),
+        restaurantId: menuData.restaurantId,
+        items: [
+          {
+            name: menuData.name,
+            price: menuData.price,
+            quantity: quantity,
+          },
+        ],
+        totalPrice: totalPrice,
+      };
+
+      console.log("Sending order:", orderData);
+
+      try {
+        const res = await fetch("http://localhost:3000/api/orders", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(orderData),
+        });
+
+        console.log("Response received:", res.status, res.statusText);
+
+        if (!res.ok) {
+          let errorData;
+          try {
+            errorData = await res.json();
+          } catch {
+            errorData = { message: `HTTP ${res.status}: ${res.statusText}` };
+          }
+          console.error("Order failed:", errorData);
+          setMessage(`❌ Failed: ${errorData.message || `HTTP ${res.status}`}`);
+          setIsSubmitting(false);
+          return;
+        }
+
+        const data = await res.json();
+        console.log("Order created successfully:", data);
+
+        setMessage("✅ Order created successfully!");
         setName("");
         setSelectedMenu("");
         setQuantity(1);
-      } else {
-        const errorResponse = await res.json();
-        setMessage(`Failed: ${errorResponse.message || "unknown error"}`);
+        setIsSubmitting(false);
+      } catch (fetchError) {
+        console.error("Fetch error:", fetchError);
+        const errorMessage = fetchError instanceof Error ? fetchError.message : "Failed to send order. Please check if order service is running.";
+        setMessage(`❌ Error: ${errorMessage}`);
+        setIsSubmitting(false);
       }
-    } catch {
-      setMessage("Error sending order");
+    } catch (err) {
+      console.error("Order error:", err);
+      const errorMessage = err instanceof Error ? err.message : "Failed to send order. Please check if order service is running.";
+      setMessage(`❌ Error: ${errorMessage}`);
+      setIsSubmitting(false);
     }
   };
 
@@ -86,7 +197,12 @@ export default function HomePage() {
         <p className="mt-3 text-gray-600 text-lg max-w-md">
           Dive into our world of deliciously dipped creations.
         </p>
-        <Button className="mt-5 bg-pink-600 hover:bg-pink-700 text-white rounded-full font-bold px-6 py-3 text-lg">
+        <Button
+          onClick={() => {
+            document.getElementById("order")?.scrollIntoView({ behavior: "smooth" });
+          }}
+          className="mt-5 bg-pink-600 hover:bg-pink-700 text-white rounded-full font-bold px-6 py-3 text-lg"
+        >
           Start Delivery
         </Button>
 
@@ -123,7 +239,7 @@ export default function HomePage() {
                 className="bg-white rounded-2xl p-6 shadow-lg text-center"
               >
                 <Image
-                  src={menu.image || "/images/donat-tumpuk.png"}
+                  src={menu.image || getMenuImage(menu.name)}
                   alt={menu.name}
                   width={150}
                   height={150}
@@ -176,9 +292,9 @@ export default function HomePage() {
             className="w-full p-3 rounded-full bg-pink-100 border border-pink-300 focus:outline-none"
           >
             <option value="">Select Menu</option>
-            {menus.map((m) => (
-              <option key={m._id} value={m.name}>
-                {m.name} - {m.restaurant.name}
+            {allMenus.map((m) => (
+              <option key={m._id} value={JSON.stringify({ id: m._id, name: m.name, price: m.price, restaurantId: m.restaurant._id })}>
+                {m.name} - {m.restaurant.name} (Rp {m.price.toLocaleString()})
               </option>
             ))}
           </select>
@@ -193,9 +309,10 @@ export default function HomePage() {
 
           <Button
             type="submit"
-            className="w-full bg-pink-600 hover:bg-pink-700 text-white rounded-full px-5 py-3"
+            disabled={isSubmitting}
+            className="w-full bg-pink-600 hover:bg-pink-700 text-white rounded-full px-5 py-3 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Submit Order
+            {isSubmitting ? "Sending..." : "Submit Order"}
           </Button>
 
           {message && <p className="text-pink-700 font-medium mt-3">{message}</p>}

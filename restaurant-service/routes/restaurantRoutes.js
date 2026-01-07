@@ -44,11 +44,12 @@ router.get("/menus", async (req, res) => {
 
     const allMenus = restaurants.flatMap((r) =>
       r.menus.map((menu) => ({
-        id: menu._id,
+        _id: menu._id,
         name: menu.name,
         price: menu.price,
+        createdAt: menu.createdAt,
         restaurant: {
-          id: r._id,
+          _id: r._id,
           name: r.name,
         },
       }))
@@ -61,6 +62,46 @@ router.get("/menus", async (req, res) => {
       page,
       totalPages: Math.ceil(allMenus.length / limit),
       menus: paginated,
+    });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// =======================
+// GET LATEST MENUS (GLOBAL - 5 MOST RECENT)
+// HARUS DI ATAS /:id
+// =======================
+router.get("/menus/latest", async (req, res) => {
+  try {
+    const limit = Number(req.query.limit) || 5;
+
+    const restaurants = await Restaurant.find({}, "name menus");
+
+    const allMenus = restaurants.flatMap((r) =>
+      r.menus.map((menu) => ({
+        _id: menu._id,
+        name: menu.name,
+        price: menu.price,
+        createdAt: menu.createdAt || r.createdAt || new Date(),
+        restaurant: {
+          _id: r._id,
+          name: r.name,
+        },
+      }))
+    );
+
+    // Sort by createdAt descending and take latest
+    const latestMenus = allMenus
+      .sort((a, b) => {
+        const dateA = new Date(a.createdAt).getTime();
+        const dateB = new Date(b.createdAt).getTime();
+        return dateB - dateA;
+      })
+      .slice(0, limit);
+
+    res.json({
+      menus: latestMenus,
     });
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -130,7 +171,7 @@ router.post("/:id/menus", async (req, res) => {
       return res.status(404).json({ message: "Restaurant not found" });
     }
 
-    restaurant.menus.push({ name, price });
+    restaurant.menus.push({ name, price, createdAt: new Date() });
     await restaurant.save();
 
     res.status(201).json({
@@ -147,14 +188,30 @@ router.post("/:id/menus", async (req, res) => {
 // =======================
 router.get("/:id/menus", async (req, res) => {
   try {
+    const limit = Number(req.query.limit) || 10;
+    const page = Number(req.query.page) || 1;
+    const skip = (page - 1) * limit;
+
     const restaurant = await Restaurant.findById(req.params.id, "name menus");
     if (!restaurant) {
       return res.status(404).json({ message: "Restaurant not found" });
     }
 
+    const menus = restaurant.menus.map((menu) => ({
+      _id: menu._id,
+      name: menu.name,
+      price: menu.price,
+      createdAt: menu.createdAt,
+    }));
+
+    const paginated = menus.slice(skip, skip + limit);
+
     res.json({
       restaurantName: restaurant.name,
-      menus: restaurant.menus,
+      total: menus.length,
+      page,
+      totalPages: Math.ceil(menus.length / limit),
+      menus: paginated,
     });
   } catch (err) {
     res.status(500).json({ message: err.message });
